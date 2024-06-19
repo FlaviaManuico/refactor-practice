@@ -4,37 +4,67 @@ import csv
 # Si hay un candidato con >50% de votos válidos retornar un array con un string con el nombre del ganador
 # Si no hay un candidato que cumpla la condicion anterior, retornar un array con los dos candidatos que pasan a segunda vuelta
 # Si ambos empatan con 50% de los votos se retorna el que apareció primero en el archivo
-# el DNI debe ser valido (8 digitos)
-class CalculaGanador:
+# el DNI debe ser valido (8 digitos) ------ DONE
 
-    def leerdatos(self):
-        data = []
-        with open('0204.csv', 'r') as csvfile:
+class Datos:
+    def __init__(self, data):
+        self.data = data
+
+    def leerdatos(self, archivo):
+        with open(archivo, 'r') as csvfile:
             next(csvfile)
             datareader = csv.reader(csvfile)
             for fila in datareader:
-                data.append( fila)
-        return data
+                self.data.append(fila)
 
-    def calcularganador(self, data):
-        votosxcandidato = {}
+class CalculaGanador:
+    def __init__(self):
+        self.votosxcandidato = {}
+
+    # Separacion/Division de métodos: contarVotos, calcularGanador, calcularGanadorTotal
+
+    def contarVotos(self, data): # Simplificacion de condicionales
         for fila in data:
-            if not fila[4] in votosxcandidato:
-                votosxcandidato[fila[4]] = [fila[4], 0]
-            if fila[5] == '1':
-                votosxcandidato[fila[4]][1] = votosxcandidato[fila[4]][1] + 1
-        ordenado = sorted(votosxcandidato.items(), key=lambda item:item[1][1], reverse=True)
-        for candidato in votosxcandidato:
-            print('candidato: ' + candidato + ' votos validos: ' + str(votosxcandidato[candidato]))
-        for candidato in ordenado:
-            return [candidato]
+            candidato = fila[4]
+            esvalido = fila[5] == '1'
+            dni = fila[3]
 
-c = CalculaGanador()
-print(c.calcularganador(c.leerdatos()))
-datatest = [
-['Áncash', 'Asunción', 'Acochaca', '40810062', 'Eddie Hinesley', '0'],
-['Áncash', 'Asunción', 'Acochaca', '57533597', 'Eddie Hinesley', '1'],
-['Áncash', 'Asunción', 'Acochaca', '86777322', 'Aundrea Grace', '1'],
-['Áncash', 'Asunción', 'Acochaca', '23017965', 'Aundrea Grace', '1']
-]
-print(c.calcularganador(datatest))
+            if candidato not in self.votosxcandidato:
+                self.votosxcandidato[candidato] = 0
+
+            if esvalido and self.dniValido(dni): # Se renombraron variables (antes es_valido: ahora esValido, usando camelCase)
+                self.votosxcandidato[candidato] += 1
+
+    # Funcion que calcula el ganador de las elecciones
+    def calcularGanador(self, data):
+        total_votos_validos = sum(self.votosxcandidato.values())
+        if total_votos_validos == 0:
+            return []
+
+        porcentaje_ganador = 0.5 * total_votos_validos
+        ganador = None
+        empate = []
+
+        for candidato, votos in self.votosxcandidato.items():
+            if votos > porcentaje_ganador:
+                ganador = candidato
+            elif votos == porcentaje_ganador:
+                empate.append(candidato)
+
+        if ganador:
+            return [ganador]
+        elif empate:
+            return [empate[0]]
+        else:
+            candidatos_ord_votos = dict(sorted(self.votosxcandidato.items(), key=lambda x: x[1], reverse=True))
+            return list(candidatos_ord_votos.keys())[:2]
+        
+    #Funcion que llama a los contarVotos y el Ganador 
+    def calcularGanadorTotal(self, data): # Simplificacion de condicionales
+        self.contarVotos(data)
+        return self.calcularGanador(data)
+
+    # Funcion que valida si un DNI es valido
+    def dniValido(self, dni):
+        return len(dni) == 8 and dni.isdigit() # Determina si el DNI tiene 8 digitos y si este es un numero
+    
